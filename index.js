@@ -26,7 +26,7 @@ async function run() {
   try {
     const categoryCollection=client.db('online-marketDB').collection('category')
     // Connect the client to the server	(optional starting in v4.7)
-    // await client.connect();
+    await client.connect();
     app.post('/category',(req,res)=>{
         const category=req.body;
         console.log(category)
