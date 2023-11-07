@@ -11,7 +11,7 @@ app.use(express.json())
 // online-marketPlace
 // uKK3YKit57VIwdd6
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.USER_NAME}:${process.env.USER_PASS}@cluster0.ktupw59.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -26,30 +26,46 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     const categoryCollection=client.db('online-marketDB').collection('category')
-    const addJobCollection=client.db('online-marketDB').collection('addJob')
+    const bidsCollection=client.db('online-marketDB').collection('myBids')
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
-    app.post('/category',(req,res)=>{
-        const category=req.body;
-        console.log(category)
-        res.send(category)
-    })
-    app.post('/addJob',async(req,res)=>{
+   
+    app.post('/category',async(req,res)=>{
       const addJob=req.body
       console.log(addJob)
-      const result=await addJobCollection.insertOne(addJob)
+      const result=await categoryCollection.insertOne(addJob)
       res.send(result)
     })
-    app.get('/addJob',async (req,res)=>{
-        const cursor=categoryCollection.find()
-        const result=await cursor.toArray()
-        res.send(result)
+    app.post('/myBids',async(req,res)=>{
+      const mybids=req.body
+      const result=await bidsCollection.insertOne(mybids)
+      res.send(result)
+      console.log(mybids)
+    })
+
+    app.get('/category/:id',async(req,res)=>{
+      const id=req.params.id
+      const query={_id: new ObjectId(id)}
+      const user=await categoryCollection.findOne(query)
+      res.send(user)
     })
     app.get('/category',async (req,res)=>{
         const cursor=categoryCollection.find()
         const result=await cursor.toArray()
         res.send(result)
     })
+    app.get('/myBids',async (req,res)=>{
+        const cursor=bidsCollection.find()
+        const result=await cursor.toArray()
+        res.send(result)
+    })
+    app.delete('/myBids/:id',async(req,res)=>{
+      const id=req.params.id
+      const query={_id: new ObjectId(id)}
+      const result=await bidsCollection.deleteOne(query)
+      res.send(result)
+    })
+   
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
