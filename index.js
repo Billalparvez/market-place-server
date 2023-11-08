@@ -25,47 +25,80 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    const categoryCollection=client.db('online-marketDB').collection('category')
-    const bidsCollection=client.db('online-marketDB').collection('myBids')
+    const categoryCollection = client.db('online-marketDB').collection('category')
+    const bidsCollection = client.db('online-marketDB').collection('myBids')
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
-   
-    app.post('/category',async(req,res)=>{
-      const addJob=req.body
+
+    app.post('/category', async (req, res) => {
+      const addJob = req.body
       console.log(addJob)
-      const result=await categoryCollection.insertOne(addJob)
+      const result = await categoryCollection.insertOne(addJob)
       res.send(result)
     })
-    app.post('/myBids',async(req,res)=>{
-      const mybids=req.body
-      const result=await bidsCollection.insertOne(mybids)
+    app.post('/myBids', async (req, res) => {
+      const mybids = req.body
+      const result = await bidsCollection.insertOne(mybids)
       res.send(result)
       console.log(mybids)
     })
 
-    app.get('/category/:id',async(req,res)=>{
-      const id=req.params.id
-      const query={_id: new ObjectId(id)}
-      const user=await categoryCollection.findOne(query)
+    //email data 
+    app.get('/category', async (req, res) => {
+      console.log(req.query.email)
+      let query = {}
+      if (req.query.email) {
+        query = { email: req.query.email }
+      }
+      const result = await categoryCollection.find(query).toArray()
+      res.send(result)
+
+    })
+
+    app.get('/category/:id', async (req, res) => {
+      const id = req.params.id
+      const query = { _id: new ObjectId(id) }
+      // option
+      const user = await categoryCollection.findOne(query)
       res.send(user)
     })
-    app.get('/category',async (req,res)=>{
-        const cursor=categoryCollection.find()
-        const result=await cursor.toArray()
-        res.send(result)
-    })
-    app.get('/myBids',async (req,res)=>{
-        const cursor=bidsCollection.find()
-        const result=await cursor.toArray()
-        res.send(result)
-    })
-    app.delete('/myBids/:id',async(req,res)=>{
-      const id=req.params.id
-      const query={_id: new ObjectId(id)}
-      const result=await bidsCollection.deleteOne(query)
+    app.get('/category', async (req, res) => {
+      const cursor = categoryCollection.find()
+      const result = await cursor.toArray()
       res.send(result)
     })
-   
+    app.get('/myBids', async (req, res) => {
+      const cursor = bidsCollection.find()
+      const result = await cursor.toArray()
+      res.send(result)
+    })
+    app.put('/category/:id', async (req, res) => {
+      const id = req.params.id
+      const updateData = req.body
+      console.log(updateData)
+      const filter = { _id: new ObjectId(id) }
+      const options = { upsert: true }
+      const updateCategory = {
+          $set: {
+              email: updateData.email,
+              Job_Title: updateData.Job_Title,
+              Deadline: updateData.Deadline,
+              Description: updateData.Description,
+              Minimum_price: updateData.Minimum_price,
+              Maximum_price: updateData.Maximum_price,
+              category: updateData.category,
+          }
+      }
+      const result = await categoryCollection.updateOne(filter, updateCategory, options)
+      res.send(result)
+  })
+    app.delete('/category/:id', async (req, res) => {
+      const id = req.params.id
+      const query = { _id: new ObjectId(id) }
+      const result = await categoryCollection.deleteOne(query)
+      res.send(result)
+    })
+
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
