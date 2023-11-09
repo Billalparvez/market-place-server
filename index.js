@@ -6,12 +6,16 @@ const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser')
 require('dotenv').config()
 const port = process.env.PORT || 5000
-app.use(cors({
-  origin: [
-    "http://localhost:5173"
-  ],
-  credentials: true
-}))
+app.use(cors(
+  {
+    origin: [
+      "http://localhost:5173",
+      'https://scientific-veil.surge.sh',
+
+    ],
+    credentials: true
+  }
+))
 app.use(express.json())
 app.use(cookieParser())
 
@@ -31,14 +35,37 @@ const client = new MongoClient(uri, {
   }
 });
 
+// middlewire
+const logger = (req, res, next) => {
+  console.log("midddle", req.method, req.url)
+  next()
+}
+// varify
+const verifyToken = (req, res, next) => {
+  const token = req?.cookies?.token
+
+  if (!token) {
+    return res.status(401).send({ message: 'unAuthorized' })
+  }
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ message: 'no access' })
+    }
+    req.user = decoded
+    next()
+  }
+  )
+}
 async function run() {
   try {
     const categoryCollection = client.db('online-marketDB').collection('category')
     const bidsCollection = client.db('online-marketDB').collection('myBids')
+
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
 
     // auth related api
+
     app.post('/jwt', async (req, res) => {
       const user = req.body
       console.log('token token', user)
@@ -53,7 +80,7 @@ async function run() {
     })
     app.post('/logout', async (req, res) => {
       const user = req.body
-      console.log("users login",user)
+      console.log("users login", user)
       res.clearCookie('token', { maxAge: 0 })
         .send({ success: true })
     })
@@ -64,12 +91,15 @@ async function run() {
       const result = await categoryCollection.insertOne(addJob)
       res.send(result)
     })
+    // 
     app.post('/myBids', async (req, res) => {
       const mybids = req.body
+      console.log(mybids)
       const result = await bidsCollection.insertOne(mybids)
       res.send(result)
-      console.log(mybids)
     })
+    // 
+ 
 
     //email data 
     app.get('/category', async (req, res) => {
@@ -85,6 +115,10 @@ async function run() {
     // bids User_Email
     app.get('/myBids', async (req, res) => {
       console.log(req.query.email)
+      console.log("cookie user", req.user)
+      if(req?.user?.email !== req?.query?.email){
+        return res.status(403).send({message:"forbidden access"})
+      }
       let query = {}
       if (req.query.email) {
         query = { user_Email: req.query.email }
@@ -98,7 +132,6 @@ async function run() {
       let query = {}
       if (req.query.email) {
         query = { owner_Email: req.query.email }
-
       }
       const result = await bidsCollection.find(query).toArray()
       res.send(result)
